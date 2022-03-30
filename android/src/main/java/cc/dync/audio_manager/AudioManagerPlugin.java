@@ -2,6 +2,11 @@ package cc.dync.audio_manager;
 
 import android.content.Context;
 import android.util.Log;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.media.AudioManager;
 
 import androidx.annotation.NonNull;
 
@@ -28,6 +33,7 @@ public class AudioManagerPlugin implements FlutterPlugin, MethodCallHandler, Vol
 
     private static FlutterAssets flutterAssets;
     private static Registrar registrar;
+    private AudioManager audioManager;
 
     private static synchronized AudioManagerPlugin getInstance() {
         if (instance == null) {
@@ -45,6 +51,15 @@ public class AudioManagerPlugin implements FlutterPlugin, MethodCallHandler, Vol
     @Override
     public void onAttachedToEngine(@NonNull FlutterPluginBinding flutterPluginBinding) {
         final MethodChannel channel = new MethodChannel(flutterPluginBinding.getBinaryMessenger(), "audio_manager");
+
+        audioManager = (AudioManager) flutterPluginBinding.getApplicationContext().getSystemService(Context.AUDIO_SERVICE);
+
+        // 注册音量监听
+        VolumeReceiver volumeReceiver = new VolumeReceiver();
+        IntentFilter filter = new IntentFilter();
+        filter.addAction("android.media.VOLUME_CHANGED_ACTION");
+        flutterPluginBinding.getApplicationContext().registerReceiver(volumeReceiver, filter);
+
 
         channel.setMethodCallHandler(getInstance());
         setup(flutterPluginBinding.getApplicationContext(), channel);
@@ -248,5 +263,17 @@ public class AudioManagerPlugin implements FlutterPlugin, MethodCallHandler, Vol
     @Override
     public void onVolumeChanged(double volume) {
         instance.channel.invokeMethod("volumeChange", volume);
+    }
+
+    private class VolumeReceiver extends BroadcastReceiver {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (intent.getAction().equals("android.media.VOLUME_CHANGED_ACTION")) {
+                helper.stop();
+                int max = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
+                int current = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
+                channel.invokeMethod("volumeChangeListener", (double) current / (double) max);
+            }
+        }
     }
 }
