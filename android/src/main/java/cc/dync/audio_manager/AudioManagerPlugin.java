@@ -250,7 +250,10 @@ public class AudioManagerPlugin implements FlutterPlugin, MethodCallHandler, Vol
 
     @Override
     public void onVolumeChanged(double volume) {
-        helper.stop();
+        if (helper.isPlaying()) {
+            helper.stop();
+        }
+
         instance.channel.invokeMethod("volumeChange", volume);
     }
 
