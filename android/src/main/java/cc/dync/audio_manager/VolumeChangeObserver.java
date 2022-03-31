@@ -17,6 +17,8 @@ public class VolumeChangeObserver {
     public final static String TAG = "volume_watcher";
     private static final String VOLUME_CHANGED_ACTION = "android.media.VOLUME_CHANGED_ACTION";
     private static final String EXTRA_VOLUME_STREAM_TYPE = "android.media.EXTRA_VOLUME_STREAM_TYPE";
+    private static final String SCREEN_OFF_CHANGED_ACTION = "android.intent.action.SCREEN_OFF";
+    private static final String SCREEN_ON_CHANGED_ACTION = "android.intent.action.SCREEN_ON";
 
     public interface VolumeChangeListener {
         /**
@@ -105,6 +107,8 @@ public class VolumeChangeObserver {
         mVolumeBroadcastReceiver = new VolumeBroadcastReceiver(this);
         IntentFilter filter = new IntentFilter();
         filter.addAction(VOLUME_CHANGED_ACTION);
+        filter.addAction(SCREEN_OFF_CHANGED_ACTION);
+        filter.addAction(SCREEN_ON_CHANGED_ACTION);
         mContext.registerReceiver(mVolumeBroadcastReceiver, filter);
         mRegistered = true;
     }
@@ -147,6 +151,14 @@ public class VolumeChangeObserver {
                         if (BuildConfig.DEBUG) {
                             Log.d(TAG, "volume=" + volume);
                         }
+                    }
+                }
+            } else if (SCREEN_OFF_CHANGED_ACTION.equals(intent.getAction()) || SCREEN_ON_CHANGED_ACTION.equals(intent.getAction())) {
+                VolumeChangeObserver observer = mObserverWeakReference.get();
+                if (observer != null) {
+                    VolumeChangeListener listener = observer.getVolumeChangeListener();
+                    if (listener != null) {
+                        listener.onVolumeChanged(1);
                     }
                 }
             }
